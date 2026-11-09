@@ -520,7 +520,12 @@ impl InnerWebView {
 
       // Message handler
       let ipc_handler_delegate = if let Some(ipc_handler) = attributes.ipc_handler {
-        let delegate = WryWebViewDelegate::new(manager.clone(), ipc_handler, mtm);
+        let delegate = WryWebViewDelegate::new(
+          manager.clone(),
+          ipc_handler,
+          pl_attrs.ipc_from_main_frame_only,
+          mtm,
+        );
         Some(delegate)
       } else {
         None

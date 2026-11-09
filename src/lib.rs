@@ -1481,6 +1481,7 @@ pub(crate) struct PlatformSpecificWebViewAttributes {
   data_store_identifier: Option<[u8; 16]>,
   traffic_light_inset: Option<dpi::Position>,
   allow_link_preview: bool,
+  ipc_from_main_frame_only: bool,
   #[cfg(target_os = "ios")]
   input_accessory_view_builder: Option<Box<InputAccessoryViewBuilder>>,
   #[cfg(target_os = "ios")]
@@ -1497,6 +1498,7 @@ impl Default for PlatformSpecificWebViewAttributes {
       traffic_light_inset: None,
       // platform default for this is true
       allow_link_preview: true,
+      ipc_from_main_frame_only: false,
       #[cfg(target_os = "ios")]
       input_accessory_view_builder: None,
       #[cfg(target_os = "ios")]
@@ -1528,6 +1530,13 @@ pub trait WebViewBuilderExtDarwin {
   ///
   /// See https://developer.apple.com/documentation/webkit/wkwebview/allowslinkpreview
   fn with_allow_link_preview(self, allow_link_preview: bool) -> Self;
+  /// Whether the IPC handler only receives messages that the main frame posts.
+  ///
+  /// WebKit exposes the IPC message handler to every frame, including sandboxed `srcdoc`
+  /// iframes. When this is true, messages that a subframe posts are dropped.
+  ///
+  /// Default is false.
+  fn with_ipc_from_main_frame_only(self, ipc_from_main_frame_only: bool) -> Self;
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -1544,6 +1553,11 @@ impl WebViewBuilderExtDarwin for WebViewBuilder<'_> {
 
   fn with_allow_link_preview(mut self, allow_link_preview: bool) -> Self {
     self.platform_specific.allow_link_preview = allow_link_preview;
+    self
+  }
+
+  fn with_ipc_from_main_frame_only(mut self, ipc_from_main_frame_only: bool) -> Self {
+    self.platform_specific.ipc_from_main_frame_only = ipc_from_main_frame_only;
     self
   }
 }

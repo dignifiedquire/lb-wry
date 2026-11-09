@@ -19,6 +19,7 @@ pub const IPC_MESSAGE_HANDLER_NAME: &str = "ipc";
 pub struct WryWebViewDelegateIvars {
   pub controller: Retained<WKUserContentController>,
   pub ipc_handler: Box<dyn Fn(Request<String>)>,
+  pub from_main_frame_only: bool,
 }
 
 define_class!(
@@ -44,6 +45,11 @@ define_class!(
         let _span = tracing::info_span!(parent: None, "wry::ipc::handle").entered();
 
         let ipc_handler = &this.ivars().ipc_handler;
+        if this.ivars().from_main_frame_only && !msg.frameInfo().isMainFrame() {
+          #[cfg(feature = "tracing")]
+          tracing::warn!("WebView dropped an IPC message from a subframe.");
+          return;
+        }
         let body = msg.body();
         if let Ok(body) = body.downcast::<NSString>() {
           let js_utf8 = body.UTF8String();
@@ -79,6 +85,7 @@ impl WryWebViewDelegate {
   pub fn new(
     controller: Retained<WKUserContentController>,
     ipc_handler: Box<dyn Fn(Request<String>)>,
+    from_main_frame_only: bool,
     mtm: MainThreadMarker,
   ) -> Retained<Self> {
     let delegate = mtm
@@ -86,6 +93,7 @@ impl WryWebViewDelegate {
       .set_ivars(WryWebViewDelegateIvars {
         ipc_handler,
         controller,
+        from_main_frame_only,
       });
 
     let delegate: Retained<Self> = unsafe { msg_send![super(delegate), init] };
